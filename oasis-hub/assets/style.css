@@ -1,0 +1,217 @@
+:root {
+  --bg: #f6f7f4;
+  --surface: #ffffff;
+  --ink: #1f2a24;
+  --muted: #5d6b63;
+  --line: #d9e0da;
+  --brand: #2f7d4f;
+  --brand-soft: #e4f2e9;
+  --accent: #b8612a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111612;
+    --surface: #1a211c;
+    --ink: #e6ece7;
+    --muted: #9aa8a0;
+    --line: #2b362f;
+    --brand: #6cc48d;
+    --brand-soft: #22332a;
+    --accent: #e9a06b;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #111612;
+  --surface: #1a211c;
+  --ink: #e6ece7;
+  --muted: #9aa8a0;
+  --line: #2b362f;
+  --brand: #6cc48d;
+  --brand-soft: #22332a;
+  --accent: #e9a06b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
+  line-height: 1.6;
+}
+
+a { color: var(--brand); }
+
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+header.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 24px;
+}
+
+header.top .brand {
+  font-weight: 700;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.badge {
+  display: inline-block;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+h1 { font-size: 28px; margin: 8px 0 4px; }
+h2 { font-size: 21px; margin: 36px 0 12px; border-left: 4px solid var(--brand); padding-left: 10px; }
+h3 { font-size: 17px; margin: 22px 0 8px; }
+.lead { color: var(--muted); margin: 0 0 16px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 14px 0;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.hub-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px;
+  transition: border-color .15s, transform .15s;
+}
+
+.hub-card:hover { border-color: var(--brand); transform: translateY(-2px); }
+.hub-card .num { font-size: 13px; color: var(--accent); font-weight: 700; }
+.hub-card h3 { margin: 4px 0 6px; color: var(--ink); }
+.hub-card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+ul.clean { padding-left: 20px; margin: 8px 0; }
+ul.clean li { margin: 6px 0; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 14px;
+  background: var(--surface);
+}
+
+th, td {
+  border: 1px solid var(--line);
+  padding: 7px 9px;
+  text-align: center;
+}
+
+th { background: var(--brand-soft); }
+td.left, th.left { text-align: left; }
+
+.num-neg { color: var(--accent); font-weight: 600; }
+
+figure {
+  margin: 14px 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+figure img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+}
+
+figcaption {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 8px 4px 2px;
+}
+
+details {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin: 14px 0;
+}
+
+details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+details p { color: var(--ink); font-size: 15px; }
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.pager a {
+  flex: 1;
+  text-decoration: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.pager a:hover { border-color: var(--brand); }
+.pager .next { text-align: right; }
+.pager small { display: block; color: var(--muted); }
+
+.hero {
+  background: linear-gradient(135deg, #2f7d4f, #1d4d31);
+  color: #fff;
+  border-radius: 18px;
+  padding: 34px 26px;
+  margin-bottom: 8px;
+}
+
+.hero h1 { color: #fff; font-size: 34px; }
+.hero p { margin: 6px 0; opacity: .92; }
+.hero .badge { background: rgba(255,255,255,.2); }
+
+@media (max-width: 600px) {
+  h1 { font-size: 23px; }
+  h2 { font-size: 18px; }
+  .hero { padding: 24px 18px; }
+  .hero h1 { font-size: 26px; }
+  table { font-size: 12px; }
+  th, td { padding: 5px 4px; }
+  .pager { flex-direction: column; }
+}
