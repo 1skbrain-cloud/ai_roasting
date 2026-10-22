@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>스톱워치</title>
+  <style>
+    :root {
+      --bg: #f4f6fa;
+      --card: rgba(255, 255, 255, 0.45);
+      --text: #1f2330;
+      --muted: #545b6b;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --danger: #e11d48;
+      --danger-hover: #be123c;
+      --good: #15803d;
+      --neutral: #e5e7eb;
+      --neutral-hover: #d1d5db;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0f1117;
+        --card: rgba(26, 29, 39, 0.45);
+        --text: #f1f3f9;
+        --muted: #aab1c0;
+        --accent: #818cf8;
+        --accent-hover: #6366f1;
+        --danger: #fb7185;
+        --danger-hover: #f43f5e;
+        --good: #4ade80;
+        --neutral: #2a2e3b;
+        --neutral-hover: #363b4b;
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0f1117;
+      --card: rgba(26, 29, 39, 0.45);
+      --text: #f1f3f9;
+      --muted: #aab1c0;
+      --accent: #818cf8;
+      --accent-hover: #6366f1;
+      --danger: #fb7185;
+      --danger-hover: #f43f5e;
+      --good: #4ade80;
+      --neutral: #2a2e3b;
+      --neutral-hover: #363b4b;
+    }
+
+    * { box-sizing: border-box; }
+
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Malgun Gothic", system-ui, sans-serif;
+      padding: 16px;
+    }
+
+    .bg-face {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 420px;
+      background: var(--card);
+      border-radius: 20px;
+      padding: 24px 20px 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+      text-align: center;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .status {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-top: 12px;
+      min-height: 1.4em;
+    }
+
+    .status.live { color: var(--danger); }
+
+    .display {
+      font-family: "Consolas", "Courier New", monospace;
+      font-size: clamp(2.2rem, 12vw, 3.5rem);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 1px;
+      margin: 4px 0 16px;
+    }
+
+    .laps-head,
+    .laps li {
+      display: grid;
+      grid-template-columns: 4.5rem 1fr 1fr;
+      gap: 8px;
+      padding: 10px 12px;
+      font-family: "Consolas", "Courier New", monospace;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.95rem;
+      text-align: right;
+    }
+
+    .laps-head {
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-bottom: 1px solid var(--neutral);
+    }
+
+    .laps-head span:first-child,
+    .laps li .lap-no { text-align: left; }
+
+    .laps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 220px;
+      overflow-y: auto;
+    }
+
+    .laps li { border-bottom: 1px solid var(--neutral); }
+
+    .laps li .split { font-weight: 700; }
+    .laps li .lap-no { color: var(--muted); }
+    .laps li.best .split { color: var(--good); }
+    .laps li.worst .split { color: var(--danger); }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.05s;
+    }
+
+    button:active { transform: scale(0.97); }
+    button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .primary {
+      flex: 1.4;
+      min-height: 64px;
+      background: var(--accent);
+      color: #fff;
+    }
+    .primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .primary.running { background: var(--danger); }
+    .primary.running:hover:not(:disabled) { background: var(--danger-hover); }
+
+    .secondary {
+      flex: 1;
+      min-height: 64px;
+      background: var(--neutral);
+      color: var(--text);
+    }
+    .secondary:hover:not(:disabled) { background: var(--neutral-hover); }
+
+    .ghost {
+      flex: none;
+      min-height: 36px;
+      padding: 0 14px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--neutral);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .ghost:hover:not(:disabled) { background: var(--neutral); }
+
+    .avg {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 12px 0 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .copy {
+      margin-top: 12px;
+      width: 100%;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin: 16px 0 0;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 2;
+      width: 40px;
+      height: 40px;
+      min-height: 40px;
+      flex: none;
+      padding: 0;
+      border-radius: 50%;
+      background: var(--card);
+      color: var(--text);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      font-size: 1.05rem;
+    }
+    .theme-toggle:hover:not(:disabled) { background: var(--neutral); }
+  </style>
+</head>
+<body>
+  <!-- 피카소 큐비즘 스타일의 얼굴 (배경 장식) -->
+  <svg class="bg-face" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    <!-- 옆얼굴 면 분할 (오른쪽을 보는 큐비즘 프로필) -->
+    <path d="M150 60 L260 60 L150 230 Z" fill="#e0a458" opacity="0.85"/>
+    <path d="M260 60 L300 120 L290 170 L150 230 Z" fill="#4f8a8b" opacity="0.85"/>
+    <path d="M150 230 L290 170 L320 230 L300 250 Z" fill="#f2e3c6" opacity="0.9"/>
+    <path d="M110 330 L150 230 L300 250 L270 320 Z" fill="#6c7a9c" opacity="0.8"/>
+    <path d="M120 400 L110 330 L270 320 L230 390 L200 440 L150 460 Z" fill="#c8553d" opacity="0.8"/>
+    <!-- 얼굴 윤곽 -->
+    <path d="M150 60 L260 60 L300 120 L290 170 L320 230 L300 250 L305 290 L270 320 L275 360 L230 390 L200 440 L150 460 L120 400 L110 330 L80 280 L120 230 L100 160 Z" fill="none" stroke="#222" stroke-width="3" stroke-linejoin="round"/>
+    <!-- 눈 (옆얼굴 위치) -->
+    <path d="M220 150 L255 145 L250 160 L222 165 Z" fill="#fff8e7" stroke="#222" stroke-width="3"/>
+    <circle cx="237" cy="155" r="5" fill="#222"/>
+    <!-- 귀 -->
+    <path d="M130 200 L165 215 L160 255 L130 250 Z" fill="none" stroke="#222" stroke-width="2.5"/>
+    <!-- 입 -->
+    <path d="M280 300 L262 318 L278 326 Z" fill="#b5443c" stroke="#222" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- 턱선 -->
+    <path d="M200 440 L230 390 L275 360" fill="none" stroke="#222" stroke-width="2.5"/>
+  </svg>
+
+  <button id="themeToggle" class="theme-toggle" type="button" aria-label="다크/라이트 모드 전환" title="다크/라이트 모드 전환">🌙 다크</button>
+
+  <main class="card">
+    <header class="card-head">
+      <h1>스톱워치</h1>
+      <button id="resetBtn" class="ghost" type="button" disabled>초기화</button>
+    </header>
+
+    <div id="status" class="status" aria-live="polite">준비</div>
+    <div id="display" class="display" aria-live="off">00:00.00</div>
+
+    <div class="laps-head" id="lapsHead" hidden>
+      <span>랩</span><span>구간</span><span>누적</span>
+    </div>
+    <ol id="laps" class="laps" aria-label="랩 기록"></ol>
+    <p id="avgLap" class="avg" hidden></p>
+    <button id="copyBtn" class="ghost copy" type="button" hidden>기록 복사</button>
+
+    <div class="controls">
+      <button id="lapBtn" class="secondary" type="button" disabled>랩 기록</button>
+      <button id="startStop" class="primary" type="button">시작</button>
+    </div>
+
+    <p class="hint">스페이스: 시작/정지 · L: 랩 기록 · R: 초기화</p>
+  </main>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'stopwatch-state';
+
+      const display = document.getElementById('display');
+      const statusEl = document.getElementById('status');
+      const startStopBtn = document.getElementById('startStop');
+      const lapBtn = document.getElementById('lapBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      const avgLap = document.getElementById('avgLap');
+      const lapsHead = document.getElementById('lapsHead');
+      const lapsList = document.getElementById('laps');
+      const themeToggle = document.getElementById('themeToggle');
+
+      let base = 0;          // 실행 구간 이전까지 누적된 시간 (ms)
+      let startTime = 0;     // 현재 실행 구간이 시작된 시각 (performance.now 기준)
+      let running = false;
+      let timerId = null;
+      let laps = [];         // { split: 구간 시간, total: 누적 시간 } (ms)
+
+      function format(ms) {
+        const totalCs = Math.floor(ms / 10);
+        const cs = totalCs % 100;
+        const totalSec = Math.floor(totalCs / 100);
+        const sec = totalSec % 60;
+        const min = Math.floor(totalSec / 60) % 60;
+        const hr = Math.floor(totalSec / 3600);
+        const pad = (n) => String(n).padStart(2, '0');
+        const head = hr > 0 ? `${pad(hr)}:${pad(min)}` : pad(min);
+        return `${head}:${pad(sec)}.${pad(cs)}`;
+      }
+
+      function currentTotal() {
+        return running ? base + (performance.now() - startTime) : base;
+      }
+
+      function render() {
+        display.textContent = format(currentTotal());
+      }
+
+      function tick() {
+        render();
+        timerId = requestAnimationFrame(tick);
+      }
+
+      function save() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            base: currentTotal(),
+            running,
+            savedAt: Date.now(),
+            laps,
+          }));
+        } catch (e) {
+          // 저장을 못 해도 화면 동작에는 영향 없음
+        }
+      }
+
+      function load() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+          if (!saved || !Array.isArray(saved.laps)) return;
+          laps = saved.laps;
+          base = saved.base;
+          if (saved.running) {
+            // 새로고침 중에도 흐른 시간을 반영해 이어서 측정
+            base += Date.now() - saved.savedAt;
+            startTime = performance.now();
+            running = true;
+          }
+        } catch (e) {
+          // 저장된 값이 없거나 깨졌으면 새로 시작
+        }
+      }
+
+      function renderLaps() {
+        lapsList.innerHTML = '';
+        lapsHead.hidden = laps.length === 0;
+        copyBtn.hidden = laps.length === 0;
+
+        const splits = laps.map((l) => l.split);
+        const hasRange = laps.length >= 2;
+        const fastest = hasRange ? Math.min(...splits) : null;
+        const slowest = hasRange ? Math.max(...splits) : null;
+
+        // 최신 랩이 위에 오도록 역순으로 추가
+        for (let i = laps.length - 1; i >= 0; i--) {
+          const lap = laps[i];
+          const li = document.createElement('li');
+          if (hasRange && lap.split === fastest) li.classList.add('best');
+          if (hasRange && lap.split === slowest) li.classList.add('worst');
+
+          const no = document.createElement('span');
+          no.className = 'lap-no';
+          no.textContent = `${i + 1}`;
+          const split = document.createElement('span');
+          split.className = 'split';
+          split.textContent = format(lap.split);
+          const total = document.createElement('span');
+          total.textContent = format(lap.total);
+
+          li.append(no, split, total);
+          lapsList.append(li);
+        }
+
+        // 랩이 두 개 이상일 때 평균 구간 시간을 보여준다
+        avgLap.hidden = !hasRange;
+        if (hasRange) {
+          const sum = splits.reduce((a, b) => a + b, 0);
+          avgLap.textContent = `평균 구간 ${format(sum / splits.length)}`;
+        }
+      }
+
+      function updateControls() {
+        startStopBtn.textContent = running ? '정지' : '시작';
+        startStopBtn.classList.toggle('running', running);
+        lapBtn.disabled = !running;
+        resetBtn.disabled = running || (base === 0 && laps.length === 0);
+        statusEl.textContent = running ? '측정 중' : (base > 0 ? '일시정지' : '준비');
+        statusEl.classList.toggle('live', running);
+      }
+
+      function start() {
+        if (running) return;
+        running = true;
+        startTime = performance.now();
+        updateControls();
+        timerId = requestAnimationFrame(tick);
+        save();
+      }
+
+      function stop() {
+        if (!running) return;
+        base = currentTotal();
+        running = false;
+        cancelAnimationFrame(timerId);
+        render();
+        updateControls();
+        save();
+      }
+
+      function toggle() {
+        running ? stop() : start();
+      }
+
+      function addLap() {
+        if (!running) return;
+        const total = currentTotal();
+        const previous = laps.length ? laps[laps.length - 1].total : 0;
+        laps.push({ split: total - previous, total });
+        renderLaps();
+        try { navigator.vibrate && navigator.vibrate(30); } catch (e) { /* 지원 안 함 */ }
+        save();
+      }
+
+      function reset() {
+        if (running) return;
+        if (base === 0 && laps.length === 0) return;
+        if (laps.length && !window.confirm('측정 기록을 모두 지울까요?')) return;
+        base = 0;
+        laps = [];
+        renderLaps();
+        render();
+        updateControls();
+        save();
+      }
+
+      startStopBtn.addEventListener('click', toggle);
+      lapBtn.addEventListener('click', addLap);
+      resetBtn.addEventListener('click', reset);
+
+      copyBtn.addEventListener('click', async () => {
+        const text = laps
+          .map((l, i) => `랩 ${i + 1}  구간 ${format(l.split)}  누적 ${format(l.total)}`)
+          .join('\n');
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.textContent = '복사됨';
+        } catch (e) {
+          copyBtn.textContent = '복사 실패';
+        }
+        setTimeout(() => { copyBtn.textContent = '기록 복사'; }, 1500);
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        if (e.code === 'Space') {
+          // 버튼에 포커스가 있으면 브라우저가 클릭으로 처리하므로 중복 실행을 막는다
+          if (e.target.tagName === 'BUTTON') return;
+          e.preventDefault();
+          toggle();
+        } else if (e.code === 'KeyL') {
+          addLap();
+        } else if (e.code === 'KeyR') {
+          reset();
+        }
+      });
+
+      function isDarkMode() {
+        const root = document.documentElement;
+        return root.getAttribute('data-theme') === 'dark' ||
+          (!root.getAttribute('data-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      }
+
+      // 버튼에는 "지금 누르면 바뀌는 모드"를 적는다
+      function updateThemeLabel() {
+        themeToggle.textContent = isDarkMode() ? '☀ 라이트' : '🌙 다크';
+      }
+
+      themeToggle.addEventListener('click', () => {
+        document.documentElement.setAttribute('data-theme', isDarkMode() ? 'light' : 'dark');
+        updateThemeLabel();
+      });
+
+      load();
+      renderLaps();
+      render();
+      updateThemeLabel();
+      updateControls();
+      if (running) timerId = requestAnimationFrame(tick);
+    })();
+  </script>
+</body>
+</html>
