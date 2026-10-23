@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>bizroasting.com 링크 맵</title>
+  <meta name="description" content="bizroasting.com 페이지 간 내부 링크 구조를 노드 그래프로 보여주는 맵">
+  <style>
+    @import url("https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css");
+
+    :root {
+      --bg: #f6f7f4;
+      --surface: #ffffff;
+      --ink: #1f2a24;
+      --muted: #5d6b63;
+      --line: #d9e0da;
+      --edge: #b9c4bd;
+      --brand: #2f7d4f;
+      --home: #2f7d4f;
+      --content: #3b6fb6;
+      --showcase: #c2572b;
+      --demo: #8a5cc0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #111612;
+        --surface: #1a211c;
+        --ink: #e6ece7;
+        --muted: #9aa8a0;
+        --line: #2b362f;
+        --edge: #3d4a42;
+        --brand: #6cc48d;
+        --home: #6cc48d;
+        --content: #7fa8e6;
+        --showcase: #f09a6b;
+        --demo: #b89be6;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #111612;
+      --surface: #1a211c;
+      --ink: #e6ece7;
+      --muted: #9aa8a0;
+      --line: #2b362f;
+      --edge: #3d4a42;
+      --brand: #6cc48d;
+      --home: #6cc48d;
+      --content: #7fa8e6;
+      --showcase: #f09a6b;
+      --demo: #b89be6;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      /* 영문·숫자는 Times New Roman, 한글은 글리프 단위로 Pretendard가 맡음 */
+      font-family: "Times New Roman", Times, "Pretendard", "Apple SD Gothic Neo", serif;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    header h1 { font-size: 20px; margin: 0; color: var(--brand); }
+    header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .controls input[type="search"] {
+      flex: 1 1 200px;
+      min-width: 0;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--ink);
+      font: inherit;
+    }
+    .controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .controls button {
+      padding: 7px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .stage {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 420px;
+      overflow: hidden;
+      touch-action: none;
+    }
+    svg { width: 100%; height: 100%; display: block; cursor: grab; }
+    svg.dragging { cursor: grabbing; }
+    .edge { stroke: var(--edge); stroke-width: 1; opacity: .55; }
+    .edge.hi { stroke: var(--brand); stroke-width: 2; opacity: 1; }
+    .edge.dim, .node.dim { opacity: .12; }
+    .node { cursor: pointer; stroke: var(--surface); stroke-width: 1.5; }
+    .node.sel { stroke: var(--ink); stroke-width: 3; }
+    .label { font-size: 11px; fill: var(--ink); pointer-events: none; paint-order: stroke; stroke: var(--bg); stroke-width: 3px; }
+    .label.dim { opacity: .12; }
+
+    .panel {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.12);
+      display: none;
+    }
+    .panel.show { display: block; }
+    .panel h2 { font-size: 16px; margin: 0 0 4px; }
+    .panel .url { font-size: 12px; color: var(--muted); word-break: break-all; }
+    .panel .stats { font-size: 13px; margin: 6px 0; }
+    .panel a { color: var(--brand); font-weight: 600; }
+    .panel .close {
+      position: absolute; top: 6px; right: 10px;
+      background: none; border: 0; font-size: 18px; color: var(--muted); cursor: pointer;
+    }
+    .hint { position: absolute; top: 10px; left: 12px; font-size: 12px; color: var(--muted); pointer-events: none; }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 17px; }
+      .stage { min-height: 380px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>bizroasting.com 링크 맵</h1>
+    <p id="summary"></p>
+  </header>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="페이지 이름 검색">
+    <label><input type="checkbox" class="grp" value="home" checked><span class="dot" style="background:var(--home)"></span>홈</label>
+    <label><input type="checkbox" class="grp" value="content" checked><span class="dot" style="background:var(--content)"></span>본문</label>
+    <label><input type="checkbox" class="grp" value="showcase" checked><span class="dot" style="background:var(--showcase)"></span>쇼케이스</label>
+    <label><input type="checkbox" class="grp" value="demo" checked><span class="dot" style="background:var(--demo)"></span>샘플·데모</label>
+    <label><input type="checkbox" id="allLabels">전체 라벨</label>
+    <button id="reset" type="button">배치 초기화</button>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="hint">드래그로 이동 · 휠로 확대/축소 · 노드를 누르면 정보</div>
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+      <g id="view">
+        <g id="edges"></g>
+        <g id="nodes"></g>
+        <g id="labels"></g>
+      </g>
+    </svg>
+    <div class="panel" id="panel">
+      <button class="close" id="close" type="button" aria-label="닫기">×</button>
+      <h2 id="pTitle"></h2>
+      <div class="url" id="pUrl"></div>
+      <div class="stats" id="pStats"></div>
+      <a id="pOpen" target="_blank" rel="noopener">페이지 열기 ↗</a>
+    </div>
+  </div>
+
+<script>
+const DATA = /*__DATA__*/null;
+
+const COLORS = {
+  home: getComputedStyle(document.documentElement).getPropertyValue("--home").trim(),
+  content: getComputedStyle(document.documentElement).getPropertyValue("--content").trim(),
+  showcase: getComputedStyle(document.documentElement).getPropertyValue("--showcase").trim(),
+  demo: getComputedStyle(document.documentElement).getPropertyValue("--demo").trim(),
+};
+const GROUP_NAME = { home: "홈", content: "본문", showcase: "쇼케이스", demo: "샘플·데모" };
+
+const nodes = DATA.nodes.map(n => ({ ...n, x: 0, y: 0, vx: 0, vy: 0 }));
+const edges = DATA.edges;
+const adj = nodes.map(() => new Set());
+edges.forEach(e => { adj[e.s].add(e.t); adj[e.t].add(e.s); });
+
+document.getElementById("summary").textContent =
+  `페이지 ${nodes.length}개 · 내부 링크 ${edges.length}개 · 끊어진 링크 ${DATA.broken}개 (크롤링 기준, 자바스크립트로 만든 링크는 제외)`;
+
+const svg = document.getElementById("svg");
+const view = document.getElementById("view");
+const edgeG = document.getElementById("edges");
+const nodeG = document.getElementById("nodes");
+const labelG = document.getElementById("labels");
+const panel = document.getElementById("panel");
+
+const NS = "http://www.w3.org/2000/svg";
+const edgeEls = edges.map(e => {
+  const l = document.createElementNS(NS, "line");
+  l.setAttribute("class", "edge");
+  edgeG.appendChild(l);
+  return l;
+});
+const nodeEls = nodes.map(n => {
+  const c = document.createElementNS(NS, "circle");
+  c.setAttribute("class", "node");
+  c.setAttribute("fill", COLORS[n.group]);
+  c.setAttribute("r", 5 + Math.min(n.degree, 30) * 0.35);
+  c.addEventListener("click", ev => { ev.stopPropagation(); select(n.id); });
+  nodeG.appendChild(c);
+  return c;
+});
+const labelEls = nodes.map(n => {
+  const t = document.createElementNS(NS, "text");
+  t.setAttribute("class", "label");
+  t.setAttribute("text-anchor", "middle");
+  t.textContent = n.label;
+  labelG.appendChild(t);
+  return t;
+});
+
+// 힘 기반 배치: 노드끼리 밀어내기 + 연결선 당기기 + 중심으로 모으기
+function layout(iterations) {
+  const W = 1000, H = 700;
+  nodes.forEach(n => {
+    if (n.x === 0 && n.y === 0) {
+      const a = Math.random() * Math.PI * 2, r = 80 + Math.random() * 220;
+      n.x = W / 2 + Math.cos(a) * r; n.y = H / 2 + Math.sin(a) * r;
+    }
+  });
+  for (let it = 0; it < iterations; it++) {
+    const cool = 1 - it / iterations;
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i], b = nodes[j];
+        let dx = a.x - b.x, dy = a.y - b.y;
+        let d2 = dx * dx + dy * dy || 0.01;
+        const f = 2600 / d2;
+        const d = Math.sqrt(d2);
+        dx /= d; dy /= d;
+        a.vx += dx * f; a.vy += dy * f;
+        b.vx -= dx * f; b.vy -= dy * f;
+      }
+    }
+    edges.forEach(e => {
+      const a = nodes[e.s], b = nodes[e.t];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
+      const f = (d - 90) * 0.02;
+      a.vx += dx / d * f; a.vy += dy / d * f;
+      b.vx -= dx / d * f; b.vy -= dy / d * f;
+    });
+    nodes.forEach(n => {
+      n.vx += (W / 2 - n.x) * 0.004;
+      n.vy += (H / 2 - n.y) * 0.004;
+      n.x += Math.max(-8, Math.min(8, n.vx)) * cool;
+      n.y += Math.max(-8, Math.min(8, n.vy)) * cool;
+      n.vx *= 0.6; n.vy *= 0.6;
+    });
+  }
+  // 전체를 0~1000, 0~700 안에 맞춤
+  const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  nodes.forEach(n => {
+    n.x = 60 + (n.x - minX) / (maxX - minX || 1) * 880;
+    n.y = 60 + (n.y - minY) / (maxY - minY || 1) * 580;
+  });
+}
+
+function render() {
+  edges.forEach((e, i) => {
+    const a = nodes[e.s], b = nodes[e.t], el = edgeEls[i];
+    el.setAttribute("x1", a.x); el.setAttribute("y1", a.y);
+    el.setAttribute("x2", b.x); el.setAttribute("y2", b.y);
+  });
+  nodes.forEach((n, i) => {
+    nodeEls[i].setAttribute("cx", n.x); nodeEls[i].setAttribute("cy", n.y);
+    labelEls[i].setAttribute("x", n.x); labelEls[i].setAttribute("y", n.y - 9 - Math.min(n.degree, 30) * 0.3);
+  });
+}
+
+// 필터 · 검색 · 강조
+const activeGroups = () => new Set([...document.querySelectorAll(".grp:checked")].map(c => c.value));
+let selected = null;
+
+function applyFilter() {
+  const groups = activeGroups();
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const showAll = document.getElementById("allLabels").checked;
+  const visible = nodes.map(n => groups.has(n.group) &&
+    (!q || n.label.toLowerCase().includes(q) || n.path.toLowerCase().includes(q) || n.title.toLowerCase().includes(q)));
+  nodes.forEach((n, i) => {
+    nodeEls[i].style.display = visible[i] ? "" : "none";
+    // 연결이 적은 페이지는 라벨을 숨겨 겹침을 줄임 (선택하거나 '전체 라벨'을 켜면 표시)
+    const labelOn = visible[i] && (showAll || n.degree >= 10 || n.id === selected);
+    labelEls[i].style.display = labelOn ? "" : "none";
+  });
+  edges.forEach((e, i) => {
+    edgeEls[i].style.display = visible[e.s] && visible[e.t] ? "" : "none";
+  });
+}
+
+function highlight(id) {
+  const neighbors = id == null ? null : adj[id];
+  edges.forEach((e, i) => {
+    const on = id != null && (e.s === id || e.t === id);
+    edgeEls[i].setAttribute("class", "edge" + (on ? " hi" : (id != null ? " dim" : "")));
+  });
+  nodes.forEach((n, i) => {
+    const on = id == null || n.id === id || (neighbors && neighbors.has(n.id));
+    nodeEls[i].setAttribute("class", "node" + (n.id === id ? " sel" : "") + (on ? "" : " dim"));
+    labelEls[i].setAttribute("class", "label" + (on ? "" : " dim"));
+  });
+}
+
+function select(id) {
+  selected = id;
+  highlight(id);
+  const n = nodes[id];
+  document.getElementById("pTitle").textContent = n.title.split("|")[0].trim() || n.path;
+  document.getElementById("pUrl").textContent = n.url;
+  document.getElementById("pStats").textContent =
+    `구분: ${GROUP_NAME[n.group]} · 나가는 링크 ${[...adj[id]].length}개 (연결된 페이지 수)`;
+  document.getElementById("pOpen").href = n.url;
+  panel.classList.add("show");
+}
+
+function clearSelection() {
+  selected = null;
+  highlight(null);
+  panel.classList.remove("show");
+}
+
+// 확대/이동
+let scale = 1, tx = 0, ty = 0, dragging = false, moved = false, lastX = 0, lastY = 0;
+function applyView() { view.setAttribute("transform", `translate(${tx},${ty}) scale(${scale})`); }
+function fit() {
+  const r = svg.getBoundingClientRect();
+  const s = Math.min(r.width / 1000, r.height / 700);
+  scale = s; tx = (r.width - 1000 * s) / 2; ty = (r.height - 700 * s) / 2;
+  applyView();
+}
+svg.addEventListener("wheel", ev => {
+  ev.preventDefault();
+  const r = svg.getBoundingClientRect();
+  const mx = ev.clientX - r.left, my = ev.clientY - r.top;
+  const k = ev.deltaY < 0 ? 1.1 : 0.9;
+  const ns = Math.max(0.3, Math.min(4, scale * k));
+  tx = mx - (mx - tx) * (ns / scale);
+  ty = my - (my - ty) * (ns / scale);
+  scale = ns;
+  applyView();
+}, { passive: false });
+svg.addEventListener("pointerdown", ev => {
+  dragging = true; moved = false; lastX = ev.clientX; lastY = ev.clientY;
+  svg.classList.add("dragging");
+  svg.setPointerCapture(ev.pointerId);
+});
+svg.addEventListener("pointermove", ev => {
+  if (!dragging) return;
+  const dx = ev.clientX - lastX, dy = ev.clientY - lastY;
+  if (Math.abs(dx) + Math.abs(dy) > 3) moved = true;
+  tx += dx; ty += dy; lastX = ev.clientX; lastY = ev.clientY;
+  applyView();
+});
+svg.addEventListener("pointerup", () => { dragging = false; svg.classList.remove("dragging"); });
+svg.addEventListener("click", () => { if (!moved) clearSelection(); });
+
+document.getElementById("close").addEventListener("click", clearSelection);
+document.getElementById("q").addEventListener("input", applyFilter);
+document.getElementById("allLabels").addEventListener("change", applyFilter);
+document.querySelectorAll(".grp").forEach(c => c.addEventListener("change", applyFilter));
+document.getElementById("reset").addEventListener("click", () => {
+  nodes.forEach(n => { n.x = 0; n.y = 0; });
+  layout(400); render(); fit();
+});
+window.addEventListener("resize", fit);
+
+layout(400);
+render();
+fit();
+applyFilter();
+</script>
+</body>
+</html>
